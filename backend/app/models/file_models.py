@@ -27,7 +27,7 @@ class UploadedFile(Base):
     
     # Upload metadata
     uploaded_by = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
-    patient_id = Column(Integer, ForeignKey("patients.id"), nullable=True, index=True)
+    patient_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)
     upload_time = Column(DateTime, default=datetime.utcnow, nullable=False, index=True)
     upload_ip = Column(String(45), nullable=True)  # IPv6 max length
     

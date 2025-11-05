@@ -22,6 +22,60 @@ class ApiService {
     this.baseUrl = baseUrl;
   }
 
+  // Staff Communication methods
+  async getStaffMessages(unreadOnly = false): Promise<ApiResponse<StaffMessage[]>> {
+    return this.get(`/api/staff-communication/messages${unreadOnly ? '?unread_only=true' : ''}`);
+  }
+
+  async getMessageStats(): Promise<ApiResponse<MessageStats>> {
+    return this.get('/api/staff-communication/messages/stats');
+  }
+
+  async sendStaffMessage(message: any): Promise<ApiResponse<any>> {
+    return this.post('/api/staff-communication/messages', message);
+  }
+
+  async markMessageRead(messageId: number): Promise<ApiResponse<any>> {
+    return this.put(`/api/staff-communication/messages/${messageId}/read`);
+  }
+
+  // Patient Portal methods
+  async getPatientDashboard(): Promise<ApiResponse<PatientDashboard>> {
+    return this.get('/api/patient-portal/dashboard');
+  }
+
+  async getPatientMessages(): Promise<ApiResponse<{ messages: PatientMessage[] }>> {
+    return this.get('/api/patient-portal/messages');
+  }
+
+  async getPatientDocuments(): Promise<ApiResponse<{ documents: PatientDocument[] }>> {
+    return this.get('/api/patient-portal/documents');
+  }
+
+  async getPatientLabResults(): Promise<ApiResponse<{ results: LabResult[] }>> {
+    return this.get('/api/patient-portal/lab-results');
+  }
+
+  async markPatientMessageRead(messageId: number): Promise<ApiResponse<any>> {
+    return this.put(`/api/patient-portal/messages/${messageId}/read`);
+  }
+
+  async downloadPatientDocument(documentId: number): Promise<Blob> {
+    const url = `/api/patient-portal/documents/${documentId}/download`;
+    const response = await fetch(`${this.baseUrl}${url}`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+
+    return response.blob();
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -214,5 +268,86 @@ export interface DispatchRequest {
 export interface DispatchStatusResponse extends EmergencyDispatch {
   patient_name?: string;
 }
+
+// Staff Communication API methods
+export interface StaffMessage {
+  id: number;
+  sender_id: number;
+  recipient_id?: number;
+  subject: string;
+  message: string;
+  message_type: string;
+  priority: string;
+  is_read: boolean;
+  read_at?: string;
+  department_filter?: string;
+  role_filter?: string;
+  expires_at?: string;
+  created_at: string;
+  sender_name?: string;
+}
+
+export interface MessageStats {
+  total_messages: number;
+  unread_messages: number;
+  urgent_messages: number;
+}
+
+// Patient Portal API methods
+export interface PatientDashboard {
+  unread_messages: number;
+  recent_documents: any[];
+  recent_lab_results: any[];
+  abnormal_results_count: number;
+  preferences: any;
+  total_documents: number;
+}
+
+export interface PatientMessage {
+  id: number;
+  patient_id: number;
+  staff_id?: number;
+  subject: string;
+  message: string;
+  message_type: string;
+  priority: string;
+  status: string;
+  is_patient_sender: boolean;
+  created_at: string;
+  staff?: any;
+}
+
+export interface PatientDocument {
+  id: number;
+  patient_id: number;
+  document_type: string;
+  title: string;
+  description?: string;
+  file_path: string;
+  file_size: number;
+  mime_type: string;
+  uploaded_by?: number;
+  is_patient_visible: boolean;
+  uploaded_at: string;
+}
+
+export interface LabResult {
+  id: number;
+  patient_id: number;
+  test_name: string;
+  test_category?: string;
+  result_value?: string;
+  normal_range?: string;
+  unit?: string;
+  status: string;
+  abnormal_flag: boolean;
+  ordered_by?: number;
+  performed_by?: number;
+  notes?: string;
+  test_date?: string;
+  result_date?: string;
+  is_patient_visible: boolean;
+}
+
 
 export default apiService;
