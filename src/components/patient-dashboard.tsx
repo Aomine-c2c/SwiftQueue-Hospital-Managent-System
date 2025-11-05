@@ -109,13 +109,14 @@ const PatientDashboard: React.FC = () => {
     try {
       const response = await apiService.downloadPatientDocument(documentId);
       // Create download link
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      const url = window.URL.createObjectURL(response);
       const link = document.createElement('a');
       link.href = url;
       link.setAttribute('download', filename);
       document.body.appendChild(link);
       link.click();
       link.remove();
+      window.URL.revokeObjectURL(url);
     } catch (error) {
       console.error('Failed to download document:', error);
       alert('Failed to download document');
