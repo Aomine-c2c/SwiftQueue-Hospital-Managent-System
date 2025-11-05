@@ -8,16 +8,20 @@ import StaffPortal from "./components/StaffPortal";
 import DepartmentPortal from "./components/DepartmentPortal";
 import AdminDashboard from "./components/AdminDashboard";
 import ReceptionistPortal from "./components/ReceptionistPortal";
+import StaffCommunicationHub from "./components/staff-communication-hub";
+import PatientDashboard from "./components/patient-dashboard";
 
 function App() {
   return (
     <Routes>
       <Route path="/" element={<HomePage />} />
       <Route path="/dashboard" element={<Dashboard />} />
+      <Route path="/patient-dashboard" element={<PatientDashboard />} />
       <Route path="/queue" element={<QueuePage />} />
       <Route path="/admin" element={<AdminPanelSimple />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/staff-portal" element={<StaffPortal />} />
+      <Route path="/staff-communication" element={<StaffCommunicationHub />} />
       <Route path="/department/:id" element={<DepartmentPortal />} />
       <Route path="/receptionist-portal" element={<ReceptionistPortal />} />
       <Route path="/analytics" element={<Analytics />} />

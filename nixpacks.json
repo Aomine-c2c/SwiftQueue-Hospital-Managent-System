@@ -1,0 +1,22 @@
+{
+  "phases": {
+    "setup": {
+      "nixPkgs": ["python311", "pip"]
+    },
+    "install": {
+      "cmds": [
+        "cd backend",
+        "pip install -r requirements.txt"
+      ]
+    },
+    "build": {
+      "cmds": [
+        "cd backend",
+        "python -c 'import app.main; print(\"App imported successfully\")'"
+      ]
+    }
+  },
+  "start": {
+    "cmd": "cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT"
+  }
+}

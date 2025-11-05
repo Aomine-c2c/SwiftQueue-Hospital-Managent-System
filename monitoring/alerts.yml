@@ -1,0 +1,83 @@
+groups:
+  - name: swiftqueue_alerts
+    interval: 30s
+    rules:
+      # API Response Time Alert
+      - alert: HighAPIResponseTime
+        expr: http_request_duration_seconds{quantile="0.95"} > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High API response time on {{ $labels.instance }}"
+          description: "API response time is above 2 seconds (current: {{ $value }}s)"
+
+      # Error Rate Alert
+      - alert: HighErrorRate
+        expr: rate(api_errors_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High error rate on {{ $labels.instance }}"
+          description: "Error rate is above 10% (current: {{ $value }})"
+
+      # Queue Length Alert
+      - alert: LongQueue
+        expr: queue_length_total{status="waiting"} > 50
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Long queue detected"
+          description: "Queue length is above 50 patients (current: {{ $value }})"
+
+      # Database Connection Pool Alert
+      - alert: LowDatabaseConnections
+        expr: db_connection_pool_available < 5
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Low database connection pool"
+          description: "Available connections below 5 (current: {{ $value }})"
+
+      # Memory Usage Alert
+      - alert: HighMemoryUsage
+        expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage above 90% (current: {{ $value }}%)"
+
+      # CPU Usage Alert
+      - alert: HighCPUUsage
+        expr: 100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage above 80% (current: {{ $value }}%)"
+
+      # Service Down Alert
+      - alert: ServiceDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "{{ $labels.instance }} has been down for more than 2 minutes"
+
+      # Authentication Failure Alert
+      - alert: HighAuthenticationFailures
+        expr: rate(auth_attempts_total{status="failure"}[5m]) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High authentication failure rate"
+          description: "Authentication failures above 5 per minute (current: {{ $value }})"

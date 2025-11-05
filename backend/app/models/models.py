@@ -420,3 +420,89 @@ class LabResult(Base):
     patient = relationship("User", foreign_keys=[patient_id])
     ordering_doctor = relationship("User", foreign_keys=[ordered_by])
     lab_technician = relationship("User", foreign_keys=[performed_by])
+
+
+# ==================== TELEMEDICINE SYSTEM ====================
+
+class TelemedicineSession(Base):
+    __tablename__ = "telemedicine_sessions"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(String, unique=True, nullable=False, index=True)  # UUID-based session identifier
+    patient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    doctor_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    appointment_id = Column(Integer, ForeignKey("appointments.id"), nullable=True)
+
+    # Session details
+    session_type = Column(Enum("video", "audio", "chat", name="session_type"), default="video")
+    status = Column(Enum("scheduled", "waiting", "in_progress", "completed", "cancelled", "failed", name="telemedicine_status"), default="scheduled")
+    scheduled_start = Column(DateTime, nullable=False)
+    actual_start = Column(DateTime, nullable=True)
+    actual_end = Column(DateTime, nullable=True)
+    duration_minutes = Column(Integer, nullable=True)  # Actual duration in minutes
+
+    # Technical details
+    room_id = Column(String, nullable=True)  # WebRTC room identifier
+    recording_enabled = Column(Boolean, default=False)
+    recording_path = Column(String, nullable=True)  # Path to recorded session
+
+    # Medical details
+    chief_complaint = Column(Text, nullable=True)
+    diagnosis = Column(Text, nullable=True)
+    treatment_plan = Column(Text, nullable=True)
+    follow_up_instructions = Column(Text, nullable=True)
+    prescription_issued = Column(Boolean, default=False)
+
+    # Quality metrics
+    connection_quality = Column(Enum("poor", "fair", "good", "excellent", name="connection_quality"), nullable=True)
+    audio_quality = Column(Enum("poor", "fair", "good", "excellent", name="audio_quality"), nullable=True)
+    video_quality = Column(Enum("poor", "fair", "good", "excellent", name="video_quality"), nullable=True)
+
+    # Feedback
+    patient_rating = Column(Integer, nullable=True)  # 1-5 rating
+    patient_feedback = Column(Text, nullable=True)
+    doctor_notes = Column(Text, nullable=True)
+
+    # Metadata
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    # Relationships
+    patient = relationship("User", foreign_keys=[patient_id])
+    doctor = relationship("User", foreign_keys=[doctor_id])
+    appointment = relationship("Appointment")
+    messages = relationship("TelemedicineMessage", back_populates="session", cascade="all, delete-orphan")
+
+
+class TelemedicineMessage(Base):
+    __tablename__ = "telemedicine_messages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("telemedicine_sessions.id"), nullable=False)
+    sender_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    message_type = Column(Enum("text", "file", "system", name="message_type"), default="text")
+    content = Column(Text, nullable=False)
+    file_path = Column(String, nullable=True)  # For file attachments
+    file_name = Column(String, nullable=True)
+    file_size = Column(Integer, nullable=True)
+    is_read = Column(Boolean, default=False)
+    sent_at = Column(DateTime, default=datetime.utcnow)
+
+    # Relationships
+    session = relationship("TelemedicineSession", back_populates="messages")
+    sender = relationship("User")
+
+
+class TelemedicineWaitingRoom(Base):
+    __tablename__ = "telemedicine_waiting_room"
+
+    id = Column(Integer, primary_key=True, index=True)
+    session_id = Column(Integer, ForeignKey("telemedicine_sessions.id"), nullable=False)
+    patient_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    joined_at = Column(DateTime, default=datetime.utcnow)
+    status = Column(Enum("waiting", "admitted", "left", name="waiting_status"), default="waiting")
+    estimated_wait_minutes = Column(Integer, nullable=True)
+
+    # Relationships
+    session = relationship("TelemedicineSession")
+    patient = relationship("User")

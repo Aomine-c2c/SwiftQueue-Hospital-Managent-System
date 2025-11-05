@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routes import queue, users, services, analytics, auth, ai, appointments, notifications, checkin, scheduling, navigation, emergency, patient_history, uploads, payments, staff, admin, file_uploads, reports, websocket_enhanced, analytics_dashboard, prescriptions, inventory, patient_portal, enhanced_ai, ai_routes, staff_communication
+from app.routes import queue, users, services, analytics, auth, ai, appointments, notifications, checkin, scheduling, navigation, emergency, patient_history, uploads, payments, staff, admin, file_uploads, reports, websocket_enhanced, analytics_dashboard, prescriptions, inventory, patient_portal, enhanced_ai, ai_routes, staff_communication, telemedicine
 # Temporarily disabled integration routes that reference missing models
 # from app.routes import hl7_integration, fhir_integration, ehr_integration
 from app.database import create_tables
@@ -80,6 +80,7 @@ app.include_router(prescriptions.router, prefix="/api", tags=["prescriptions"])
 app.include_router(inventory.router, prefix="/api", tags=["inventory"])
 app.include_router(patient_portal.router, prefix="/api", tags=["patient-portal"])
 app.include_router(staff_communication.router, prefix="/api", tags=["staff-communication"])
+app.include_router(telemedicine.router, prefix="/api/telemedicine", tags=["telemedicine"])
 
 # Temporarily disabled integration routes that reference missing models
 # app.include_router(hl7_integration.router, prefix="/api/hl7", tags=["hl7-integration"])
