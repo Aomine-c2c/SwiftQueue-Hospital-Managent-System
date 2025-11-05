@@ -1,6 +1,6 @@
 // Use Vite environment variable if provided (VITE_API_URL) and normalize to include /api
 const _VITE_API = (import.meta as any).env?.VITE_API_URL as string | undefined;
-const _DEFAULT_API = 'http://localhost:8001';
+const _DEFAULT_API = 'http://10.200.8.155:8001';
 const API_BASE_URL = _VITE_API && _VITE_API.length > 0 ? (_VITE_API.endsWith('/api') ? _VITE_API : `${_VITE_API.replace(/\/+$/, '')}/api`) : `${_DEFAULT_API}/api`;
 
 export interface SymptomAnalysisRequest {

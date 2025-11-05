@@ -138,23 +138,23 @@ class SecurityConfig:
         
         # Print validation results
         if errors:
-            print("❌ SECURITY CONFIGURATION ERRORS:")
+            print("SECURITY CONFIGURATION ERRORS:")
             for error in errors:
                 print(f"  - {error}")
             raise ValueError("Invalid security configuration")
-        
+
         if warnings:
-            print("⚠️  SECURITY CONFIGURATION WARNINGS:")
+            print("SECURITY CONFIGURATION WARNINGS:")
             for warning in warnings:
                 print(f"  - {warning}")
-        
-        print("✅ Security configuration validated")
+
+        print("Security configuration validated")
     
     @classmethod
     def print_config(cls):
         """Print security configuration (for debugging)"""
         print("\n" + "=" * 60)
-        print("🔒 SECURITY CONFIGURATION")
+        print("SECURITY CONFIGURATION")
         print("=" * 60)
         
         config = cls.get_config()

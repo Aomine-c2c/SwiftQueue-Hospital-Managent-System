@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
+from sqlalchemy import case
 from typing import List, Optional
 from pydantic import BaseModel
 from app.database import get_db
@@ -260,27 +261,41 @@ async def call_next_patient(
     db: Session = Depends(get_db)
 ):
     """Call next patient in queue"""
-    # Get next waiting patient for this service
-    next_patient = db.query(QueueEntry).filter(
-        QueueEntry.service_id == request.service_id,
-        QueueEntry.status == "waiting"
-    ).order_by(QueueEntry.created_at).first()
-    
-    if not next_patient:
-        raise HTTPException(status_code=404, detail="No patients waiting")
-    
-    # Update status to called
-    next_patient.status = "called"
-    db.commit()
-    db.refresh(next_patient)
-    
-    return {
-        "called_patient": {
-            "id": next_patient.id,
-            "queue_number": next_patient.queue_number,
-            "service_id": next_patient.service_id,
-            "status": next_patient.status
-        },
-        "counter_name": request.counter_name,
-        "message": f"Patient {next_patient.queue_number} called to {request.counter_name}"
-    }
+    print(f"[DEBUG] call_next_patient called with service_id={request.service_id}, counter={request.counter_name}")
+    try:
+        # Get next waiting patient for this service by creation time
+        # TODO: Add priority ordering later
+        print(f"[DEBUG] Querying for service_id={request.service_id}, status=waiting")
+        next_patient = db.query(QueueEntry).filter(
+            QueueEntry.service_id == request.service_id,
+            QueueEntry.status == "waiting"
+        ).order_by(
+            QueueEntry.created_at
+        ).first()
+
+        if not next_patient:
+            raise HTTPException(status_code=404, detail="No patients waiting")
+
+        # Update status to called
+        next_patient.status = "called"
+        db.commit()
+        db.refresh(next_patient)
+
+        return {
+            "called_patient": {
+                "id": next_patient.id,
+                "queue_number": next_patient.queue_number,
+                "service_id": next_patient.service_id,
+                "status": next_patient.status,
+                "priority": next_patient.priority
+            },
+            "counter_name": request.counter_name,
+            "message": f"Patient {next_patient.queue_number} called to {request.counter_name}"
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        print(f"ERROR in call_next_patient: {str(e)}")
+        print(traceback.format_exc())
+        raise HTTPException(status_code=500, detail=f"Internal error: {str(e)}")

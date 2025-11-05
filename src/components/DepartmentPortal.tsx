@@ -2,11 +2,14 @@ import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Activity, Users, Clock, CheckCircle, XCircle } from 'lucide-react';
+import { Activity, Users, Clock, CheckCircle, XCircle, Phone } from 'lucide-react';
 import { wsService } from '@/services/wsService';
+import { useToast } from "@/components/ui/use-toast";
+import apiClient from '@/services/apiClient';
 
 export default function DepartmentPortal() {
   const { id } = useParams();
+  const { toast } = useToast();
   const [dept, setDept] = useState<any>({ id, name: `Department ${id}`, is_active: true, avg_wait_time: 12 });
   const [queue, setQueue] = useState<any[]>([
     { id: 1, ticket: 'A201', patient_name: 'Anna', service: 'Consult', wait_seconds: 90, status: 'waiting' },
@@ -16,8 +19,27 @@ export default function DepartmentPortal() {
     { id: 1, name: 'Dr. Smith', role: 'Lead' },
     { id: 2, name: 'Nurse Joy', role: 'Nurse' }
   ]);
+  const [loading, setLoading] = useState(false);
+  const [serviceId, setServiceId] = useState<number | null>(null);
 
   useEffect(() => {
+    // Fetch services for this department
+    const fetchServices = async () => {
+      try {
+        const response = await apiClient.get('/services');
+        const departmentServices = response.data.filter((s: any) => 
+          s.department?.toLowerCase() === id?.toLowerCase()
+        );
+        if (departmentServices.length > 0) {
+          setServiceId(departmentServices[0].id);
+        }
+      } catch (error) {
+        console.error('Failed to fetch services:', error);
+      }
+    };
+    
+    fetchServices();
+
     let unsubscribe: (() => void) | undefined;
     // subscribe to department WS channel if enabled
     wsService.connect().then(() => {
@@ -36,9 +58,64 @@ export default function DepartmentPortal() {
   }, [id]);
 
   const callNext = async () => {
-    if (queue.length === 0) return;
-    // simple mock action: mark first as called
-    setQueue(prev => prev.map((q, i) => i === 0 ? { ...q, status: 'called' } : q));
+    if (!serviceId) {
+      toast({
+        title: "Service not found",
+        description: "Unable to determine service for this department.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (queue.length === 0) {
+      toast({
+        title: "No patients in queue",
+        description: "There are no waiting patients to call.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const nextPatient = queue.find(q => q.status === 'waiting');
+    if (!nextPatient) {
+      toast({
+        title: "No waiting patients",
+        description: "All patients have been called.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setLoading(true);
+    try {
+      // Try to call the backend API with correct parameters
+      const response = await apiClient.post('/queue/call-next', {
+        service_id: serviceId,
+        counter_name: `${id} Counter 1`
+      });
+
+      const calledPatient = response.data.called_patient;
+      toast({
+        title: "Patient Called",
+        description: `Ticket #${calledPatient.queue_number} called to ${response.data.counter_name}`,
+      });
+
+      // Update local queue state
+      setQueue(prev => prev.map((q) => q.id === nextPatient.id ? { ...q, status: 'called' } : q));
+    } catch (error: any) {
+      console.error('Failed to call next patient:', error);
+      
+      // Fallback to local update if API fails
+      setQueue(prev => prev.map((q) => q.id === nextPatient.id ? { ...q, status: 'called' } : q));
+      
+      const errorMessage = error?.response?.data?.detail || 'Using offline mode';
+      toast({
+        title: "Patient Called (Offline)",
+        description: `Called ${nextPatient.patient_name} - Ticket: ${nextPatient.ticket}. ${errorMessage}`,
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const markServed = async (ticketId: number) => {
@@ -68,7 +145,14 @@ export default function DepartmentPortal() {
               <CardContent>
                 <div className="space-y-2">
                   <div className="flex justify-end mb-2">
-                    <Button onClick={callNext}>Call Next</Button>
+                    <Button 
+                      onClick={callNext} 
+                      disabled={loading || queue.length === 0}
+                      className="flex items-center gap-2"
+                    >
+                      <Phone className="h-4 w-4" />
+                      {loading ? 'Calling...' : 'Call Next'}
+                    </Button>
                   </div>
                   {queue.map(q => (
                     <div key={q.id} className="flex justify-between items-center border rounded p-2">

@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SwiftQueue AI Classifier - Live Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 20px;
+            min-height: 100vh;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .status-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 8px 20px;
+            border-radius: 20px;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+        
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+        
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 1.5rem;
+        }
+        
+        .test-section {
+            margin-bottom: 25px;
+        }
+        
+        .input-group {
+            margin-bottom: 15px;
+        }
+        
+        .input-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .input-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .input-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+        
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: transform 0.2s;
+            width: 100%;
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+        }
+        
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 8px;
+            background: #f9fafb;
+            border-left: 4px solid #667eea;
+        }
+        
+        .result h3 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+        
+        .result-item {
+            margin-bottom: 8px;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+        }
+        
+        .result-item strong {
+            color: #374151;
+        }
+        
+        .severity-critical { color: #dc2626; font-weight: bold; }
+        .severity-high { color: #ea580c; font-weight: bold; }
+        .severity-moderate { color: #f59e0b; font-weight: bold; }
+        .severity-low { color: #10b981; font-weight: bold; }
+        
+        .confidence-bar {
+            height: 8px;
+            background: #e5e7eb;
+            border-radius: 4px;
+            overflow: hidden;
+            margin-top: 5px;
+        }
+        
+        .confidence-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s;
+        }
+        
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .stat-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+        }
+        
+        .stat-box .number {
+            font-size: 2rem;
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        
+        .stat-box .label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .example-symptoms {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-top: 10px;
+        }
+        
+        .symptom-tag {
+            background: #667eea;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        
+        .symptom-tag:hover {
+            transform: scale(1.05);
+        }
+        
+        .loading {
+            text-align: center;
+            padding: 20px;
+            color: #667eea;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏥 SwiftQueue AI Symptom Classifier</h1>
+            <p>Fast • Free • Private • Multilingual</p>
+            <span class="status-badge" id="status">Checking Status...</span>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-box">
+                <div class="number">&lt;50ms</div>
+                <div class="label">Response Time</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">$0</div>
+                <div class="label">Cost</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">100%</div>
+                <div class="label">Offline</div>
+            </div>
+            <div class="stat-box">
+                <div class="number">2</div>
+                <div class="label">Languages</div>
+            </div>
+        </div>
+        
+        <div class="grid" style="margin-top: 30px;">
+            <div class="card">
+                <h2>🤖 AI Symptom Analysis</h2>
+                
+                <div class="input-group">
+                    <label for="symptoms">Enter Symptoms (comma-separated):</label>
+                    <textarea 
+                        id="symptoms" 
+                        placeholder="e.g., chest pain, shortness of breath, dizziness&#10;or: kurwadziwa moyo, kupfupika kufema (Shona)"
+                    ></textarea>
+                </div>
+                
+                <div class="input-group">
+                    <label for="language">Language:</label>
+                    <select id="language">
+                        <option value="English">English</option>
+                        <option value="Shona">Shona</option>
+                        <option value="Mixed">Mixed</option>
+                    </select>
+                </div>
+                
+                <button onclick="analyzeSymptoms()" id="analyzeBtn">
+                    Analyze Symptoms
+                </button>
+                
+                <div style="margin-top: 15px;">
+                    <small style="color: #6b7280;">Quick examples:</small>
+                    <div class="example-symptoms">
+                        <span class="symptom-tag" onclick="setSymptoms('chest pain, shortness of breath, dizziness')">
+                            Cardiac
+                        </span>
+                        <span class="symptom-tag" onclick="setSymptoms('headache, fever, nausea')">
+                            Flu-like
+                        </span>
+                        <span class="symptom-tag" onclick="setSymptoms('kurwadziwa moyo, kupfupika kufema', 'Shona')">
+                            Shona Example
+                        </span>
+                        <span class="symptom-tag" onclick="setSymptoms('broken bone, unable to walk')">
+                            Orthopedic
+                        </span>
+                    </div>
+                </div>
+                
+                <div id="result"></div>
+            </div>
+            
+            <div class="card">
+                <h2>📊 System Information</h2>
+                
+                <div class="result-item">
+                    <strong>Models Status:</strong>
+                    <div id="modelStatus" class="loading">Loading...</div>
+                </div>
+                
+                <div class="result-item">
+                    <strong>Severity Levels:</strong>
+                    <div id="severityLevels" class="loading">Loading...</div>
+                </div>
+                
+                <div class="result-item">
+                    <strong>Departments:</strong>
+                    <div id="departments" class="loading">Loading...</div>
+                </div>
+                
+                <div class="result-item">
+                    <strong>API Endpoints:</strong>
+                    <ul style="margin-top: 8px; padding-left: 20px;">
+                        <li><code>/api/classifier/analyze-symptoms</code></li>
+                        <li><code>/api/classifier/model-status</code></li>
+                        <li><code>/api/classifier/severity-levels</code></li>
+                        <li><code>/api/classifier/departments</code></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:8001/api/classifier';
+        
+        // Check system status on load
+        async function checkStatus() {
+            try {
+                const response = await fetch(`${API_BASE}/model-status`);
+                const data = await response.json();
+                
+                if (data.models_trained) {
+                    document.getElementById('status').textContent = '✅ OPERATIONAL';
+                    document.getElementById('status').style.background = '#10b981';
+                } else {
+                    document.getElementById('status').textContent = '⚠️ MODELS NOT LOADED';
+                    document.getElementById('status').style.background = '#f59e0b';
+                }
+                
+                document.getElementById('modelStatus').innerHTML = `
+                    <span style="color: #10b981;">✓</span> Models Loaded<br>
+                    <small style="color: #6b7280;">${data.message}</small>
+                `;
+            } catch (error) {
+                document.getElementById('status').textContent = '❌ OFFLINE';
+                document.getElementById('status').style.background = '#dc2626';
+                document.getElementById('modelStatus').innerHTML = `
+                    <span style="color: #dc2626;">✗</span> Cannot connect to backend
+                `;
+            }
+        }
+        
+        // Load severity levels
+        async function loadSeverityLevels() {
+            try {
+                const response = await fetch(`${API_BASE}/severity-levels`);
+                const data = await response.json();
+                
+                document.getElementById('severityLevels').innerHTML = 
+                    data.levels.map(level => 
+                        `<span class="severity-${level.toLowerCase()}">${level}</span>`
+                    ).join(', ');
+            } catch (error) {
+                document.getElementById('severityLevels').textContent = 'Error loading';
+            }
+        }
+        
+        // Load departments
+        async function loadDepartments() {
+            try {
+                const response = await fetch(`${API_BASE}/departments`);
+                const data = await response.json();
+                
+                document.getElementById('departments').textContent = 
+                    data.departments.join(', ');
+            } catch (error) {
+                document.getElementById('departments').textContent = 'Error loading';
+            }
+        }
+        
+        // Set example symptoms
+        function setSymptoms(symptoms, language = 'English') {
+            document.getElementById('symptoms').value = symptoms;
+            document.getElementById('language').value = language;
+        }
+        
+        // Analyze symptoms
+        async function analyzeSymptoms() {
+            const symptoms = document.getElementById('symptoms').value.trim();
+            const language = document.getElementById('language').value;
+            
+            if (!symptoms) {
+                alert('Please enter symptoms first');
+                return;
+            }
+            
+            const button = document.getElementById('analyzeBtn');
+            const resultDiv = document.getElementById('result');
+            
+            button.disabled = true;
+            button.textContent = 'Analyzing...';
+            resultDiv.innerHTML = '<div class="loading">🔄 Analyzing symptoms...</div>';
+            
+            try {
+                const startTime = performance.now();
+                
+                const response = await fetch(`${API_BASE}/analyze-symptoms`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ symptoms, language })
+                });
+                
+                const endTime = performance.now();
+                const responseTime = Math.round(endTime - startTime);
+                
+                const data = await response.json();
+                
+                const severityClass = `severity-${data.severity.toLowerCase()}`;
+                const severityConfidence = Math.round(data.confidence.severity * 100);
+                const deptConfidence = Math.round(data.confidence.department * 100);
+                
+                resultDiv.innerHTML = `
+                    <div class="result">
+                        <h3>Analysis Results</h3>
+                        
+                        <div class="result-item">
+                            <strong>Severity:</strong> 
+                            <span class="${severityClass}">${data.severity}</span>
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${severityConfidence}%"></div>
+                            </div>
+                            <small style="color: #6b7280;">${severityConfidence}% confidence</small>
+                        </div>
+                        
+                        <div class="result-item">
+                            <strong>Recommended Department:</strong> ${data.department}
+                            <div class="confidence-bar">
+                                <div class="confidence-fill" style="width: ${deptConfidence}%"></div>
+                            </div>
+                            <small style="color: #6b7280;">${deptConfidence}% confidence</small>
+                        </div>
+                        
+                        ${data.recommended_service ? `
+                            <div class="result-item">
+                                <strong>Recommended Service:</strong><br>
+                                ${data.recommended_service.name}<br>
+                                <small style="color: #6b7280;">
+                                    Estimated time: ${data.recommended_service.estimated_time} min
+                                </small>
+                            </div>
+                        ` : ''}
+                        
+                        <div class="result-item">
+                            <strong>Response Time:</strong> ${responseTime}ms
+                        </div>
+                    </div>
+                `;
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="result" style="border-left-color: #dc2626;">
+                        <h3 style="color: #dc2626;">Error</h3>
+                        <p>${error.message}</p>
+                    </div>
+                `;
+            } finally {
+                button.disabled = false;
+                button.textContent = 'Analyze Symptoms';
+            }
+        }
+        
+        // Initialize on load
+        window.addEventListener('DOMContentLoaded', () => {
+            checkStatus();
+            loadSeverityLevels();
+            loadDepartments();
+        });
+    </script>
+</body>
+</html>

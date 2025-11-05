@@ -156,8 +156,22 @@ export const queueService = {
                 total_waiting: 8,
                 total_being_served: 3,
                 avg_wait_time_today: 15,
+                urgent_cases: 2,
                 efficiency_score: 0.89
             };
+        }
+    },
+
+    async callNextPatient(serviceId: number, counterName: string): Promise<any> {
+        try {
+            const response = await apiClient.post('/queue/call-next', {
+                service_id: serviceId,
+                counter_name: counterName
+            });
+            return response.data;
+        } catch (error) {
+            console.error('Failed to call next patient:', error);
+            throw error;
         }
     }
 };

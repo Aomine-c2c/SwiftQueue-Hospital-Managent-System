@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
-from app.routes import queue, users, services, analytics, auth, ai, appointments, notifications, checkin, scheduling, navigation, emergency, patient_history, uploads, payments, staff, admin, file_uploads, reports, websocket_enhanced, analytics_dashboard, prescriptions, inventory, patient_portal, enhanced_ai
+from app.routes import queue, users, services, analytics, auth, ai, appointments, notifications, checkin, scheduling, navigation, emergency, patient_history, uploads, payments, staff, admin, file_uploads, reports, websocket_enhanced, analytics_dashboard, prescriptions, inventory, patient_portal, enhanced_ai, ai_routes
 # Temporarily disabled integration routes that reference missing models
 # from app.routes import hl7_integration, fhir_integration, ehr_integration
 from app.database import create_tables
@@ -59,6 +59,7 @@ app.include_router(services.router, prefix="/api/services", tags=["services"])
 app.include_router(analytics.router, prefix="/api/analytics", tags=["analytics"])
 app.include_router(ai.router, prefix="/api/ai", tags=["ai"])
 app.include_router(enhanced_ai.router, prefix="/api/enhanced-ai", tags=["enhanced-ai"])
+app.include_router(ai_routes.router, prefix="/api/classifier", tags=["ai-classifier"])  # New Naive Bayes classifier
 app.include_router(patient_history.router, prefix="/api/patient-history", tags=["patient-history"])
 app.include_router(uploads.router, prefix="/api/uploads", tags=["uploads"])
 app.include_router(file_uploads.router, prefix="/api/files", tags=["file-management"])
@@ -101,7 +102,7 @@ async def startup_event():
     missing_vars = []
     for var, description in required_vars.items():
         if not os.getenv(var):
-            missing_vars.append(f"  ❌ {var}: {description}")
+            missing_vars.append(f"  - {var}: {description}")
     
     if missing_vars:
         print("\n" + "=" * 70)
@@ -109,7 +110,7 @@ async def startup_event():
         print("=" * 70)
         for msg in missing_vars:
             print(msg)
-        print("\n💡 Create a .env file based on .env.example and set these variables")
+        print("\nCreate a .env file based on .env.example and set these variables")
         print("=" * 70 + "\n")
         raise ValueError("Required environment variables not set. See error above.")
     
@@ -117,33 +118,33 @@ async def startup_event():
     
     # Print security configuration
     print("\n" + "=" * 60)
-    print("🚀 Starting Hospital Queue Management System")
+    print("Starting Hospital Queue Management System")
     print("=" * 60)
     
     SecurityConfig.print_config()
     
     # Print active routes
-    print("\n📍 REGISTERED ROUTES:")
+    print("\nREGISTERED ROUTES:")
     for route in app.routes:
         if hasattr(route, "methods"):
             methods = ", ".join(route.methods)
             print(f"  {methods:20} {route.path}")
     
-    print("\n✅ Application started successfully!\n")
+    print("\nApplication started successfully!\n")
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Application shutdown: cleanup sessions"""
-    print("\n🛑 Shutting down application...")
+    print("\nShutting down application...")
     
     # Get session stats before cleanup
     stats = SessionService.get_session_stats()
-    print(f"📊 Active sessions: {stats['active_sessions']}")
+    print(f"Active sessions: {stats['active_sessions']}")
     print(f"   - Patients: {stats['sessions_by_role']['patient']}")
     print(f"   - Staff: {stats['sessions_by_role']['staff']}")
     print(f"   - Admin: {stats['sessions_by_role']['admin']}")
     
-    print("✅ Shutdown complete\n")
+    print("Shutdown complete\n")
 
 @app.get("/api/health")
 async def health_check():

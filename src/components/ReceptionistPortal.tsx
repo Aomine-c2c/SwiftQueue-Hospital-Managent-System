@@ -47,7 +47,7 @@ interface QueueItem {
   priority: 'low' | 'medium' | 'high' | 'urgent';
   department: string;
   checkInTime: string;
-  status: 'waiting' | 'being_served' | 'completed';
+  status: 'waiting' | 'being_served' | 'completed' | 'called';
 }
 
 interface QueueStats {
@@ -76,6 +76,15 @@ const ReceptionistPortal: React.FC = () => {
   const [urgentAlerts, setUrgentAlerts] = useState<QueueItem[]>([]);
   const [showCheckInDialog, setShowCheckInDialog] = useState(false);
   const [selectedPatient, setSelectedPatient] = useState<QueueItem | null>(null);
+  const [callNextLoading, setCallNextLoading] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<{
+    severity: string;
+    department: string;
+    confidence: { severity: number; department: number };
+    analyzing: boolean;
+  } | null>(null);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>("");
+  const [selectedPriority, setSelectedPriority] = useState<string>("");
 
   useEffect(() => {
     loadQueueData();
@@ -196,6 +205,34 @@ const ReceptionistPortal: React.FC = () => {
       ]);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCallNext = async (patient: QueueItem) => {
+    setCallNextLoading(true);
+    try {
+      // Find the service ID for this patient (we'll need to get this from the queue data)
+      // For now, we'll use a default service ID or try to determine it from the department
+      const serviceId = 1; // Default to first service, could be improved
+
+      const response = await queueService.callNextPatient(serviceId, 'Counter 1');
+
+      if (response.called_patient) {
+        // Update the local queue data
+        setQueueItems(prev => prev.map(item =>
+          item.id === patient.id
+            ? { ...item, status: 'called' as const }
+            : item
+        ));
+
+        // Refresh data after a short delay
+        setTimeout(() => loadQueueData(), 1000);
+      }
+    } catch (error) {
+      console.error('Failed to call next patient:', error);
+      // Could add error state here if needed
+    } finally {
+      setCallNextLoading(false);
     }
   };
 
@@ -475,31 +512,170 @@ const ReceptionistPortal: React.FC = () => {
                         </DialogHeader>
                         <div className="space-y-4">
                           <Input placeholder="Patient Name" />
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Department" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="emergency">Emergency</SelectItem>
-                              <SelectItem value="cardiology">Cardiology</SelectItem>
-                              <SelectItem value="general">General Medicine</SelectItem>
-                              <SelectItem value="laboratory">Laboratory</SelectItem>
-                              <SelectItem value="radiology">Radiology</SelectItem>
-                              <SelectItem value="pediatrics">Pediatrics</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <Select>
-                            <SelectTrigger>
-                              <SelectValue placeholder="Priority" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="low">Low</SelectItem>
-                              <SelectItem value="medium">Medium</SelectItem>
-                              <SelectItem value="high">High</SelectItem>
-                              <SelectItem value="urgent">Urgent</SelectItem>
-                            </SelectContent>
-                          </Select>
-                          <div className="flex justify-end space-x-2">
+                          
+                          {/* AI Symptom Analysis */}
+                          <div className="space-y-2">
+                            <label className="text-sm font-medium flex items-center gap-2">
+                              Symptoms (Optional)
+                              <Badge variant="outline" className="text-xs">
+                                <Zap className="h-3 w-3 mr-1" />
+                                AI-Powered
+                              </Badge>
+                            </label>
+                            <Input
+                              placeholder="e.g., chest pain, fever, headache"
+                              onChange={async (e) => {
+                                const symptoms = e.target.value.trim();
+                                if (symptoms.length > 5) {
+                                  setAiSuggestion({
+                                    severity: '',
+                                    department: '',
+                                    confidence: { severity: 0, department: 0 },
+                                    analyzing: true
+                                  });
+                                  try {
+                                    const response = await fetch('http://localhost:8001/api/classifier/analyze-symptoms', {
+                                      method: 'POST',
+                                      headers: { 'Content-Type': 'application/json' },
+                                      body: JSON.stringify({ symptoms, language: 'English' })
+                                    });
+
+                                    if (!response.ok) {
+                                      throw new Error(`Classifier request failed with status ${response.status}`);
+                                    }
+
+                                    const data = await response.json();
+                                    setAiSuggestion({
+                                      severity: data.severity,
+                                      department: data.department,
+                                      confidence: {
+                                        severity: Math.round(data.confidence.severity * 100),
+                                        department: Math.round(data.confidence.department * 100)
+                                      },
+                                      analyzing: false
+                                    });
+                                    // Auto-select department
+                                    let dept = "";
+                                    switch (data.department.toLowerCase()) {
+                                      case "emergency": dept = "emergency"; break;
+                                      case "cardiology": dept = "cardiology"; break;
+                                      case "general": dept = "general"; break;
+                                      case "general practitioner": dept = "general"; break;
+                                      case "laboratory": dept = "laboratory"; break;
+                                      case "radiology": dept = "radiology"; break;
+                                      case "pediatrics": dept = "pediatrics"; break;
+                                      default: dept = "general";
+                                    }
+                                    setSelectedDepartment(dept);
+                                    // Auto-select priority
+                                    let prio = "medium";
+                                    switch (data.severity.toLowerCase()) {
+                                      case "critical": prio = "urgent"; break;
+                                      case "high": prio = "high"; break;
+                                      case "moderate": prio = "medium"; break;
+                                      case "low": prio = "low"; break;
+                                      default: prio = "medium";
+                                    }
+                                    setSelectedPriority(prio);
+                                  } catch (error) {
+                                    console.error('AI analysis failed:', error);
+                                    setAiSuggestion(null);
+                                  }
+                                } else {
+                                  setAiSuggestion(null);
+                                  setSelectedDepartment("");
+                                  setSelectedPriority("");
+                                }
+                              }}
+                            />
+                            
+                            {/* AI Suggestion Display */}
+                            <AnimatePresence>
+                              {aiSuggestion?.analyzing && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  className="flex items-center gap-2 text-sm text-muted-foreground"
+                                >
+                                  <RefreshCw className="h-3 w-3 animate-spin" />
+                                  Analyzing symptoms...
+                                </motion.div>
+                              )}
+                              
+                              {aiSuggestion && !aiSuggestion.analyzing && (
+                                <motion.div
+                                  initial={{ opacity: 0, y: -10 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  exit={{ opacity: 0, y: -10 }}
+                                  className="p-3 bg-blue-50 border border-blue-200 rounded-lg space-y-2"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <Zap className="h-4 w-4 text-blue-600" />
+                                    <span className="text-sm font-medium text-blue-900">AI Recommendation</span>
+                                  </div>
+                                  
+                                  <div className="grid grid-cols-2 gap-2">
+                                    <div>
+                                      <p className="text-xs text-blue-700">Severity</p>
+                                      <Badge 
+                                        variant={
+                                          aiSuggestion.severity === 'Critical' ? 'destructive' :
+                                          aiSuggestion.severity === 'High' ? 'default' :
+                                          'secondary'
+                                        }
+                                        className="mt-1"
+                                      >
+                                        {aiSuggestion.severity}
+                                      </Badge>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {aiSuggestion.confidence.severity}% confidence
+                                      </p>
+                                    </div>
+                                    
+                                    <div>
+                                      <p className="text-xs text-blue-700">Department</p>
+                                      <Badge variant="outline" className="mt-1">
+                                        {aiSuggestion.department}
+                                      </Badge>
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        {aiSuggestion.confidence.department}% confidence
+                                      </p>
+                                    </div>
+                                  </div>
+                                </motion.div>
+                              )}
+                            </AnimatePresence>
+                          </div>
+                          <div>
+                            <Select value={selectedDepartment} onValueChange={setSelectedDepartment}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Department" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="emergency">Emergency</SelectItem>
+                                <SelectItem value="cardiology">Cardiology</SelectItem>
+                                <SelectItem value="general">General Medicine</SelectItem>
+                                <SelectItem value="laboratory">Laboratory</SelectItem>
+                                <SelectItem value="radiology">Radiology</SelectItem>
+                                <SelectItem value="pediatrics">Pediatrics</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="mt-4">
+                            <Select value={selectedPriority} onValueChange={setSelectedPriority}>
+                              <SelectTrigger>
+                                <SelectValue placeholder="Priority" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="low">Low</SelectItem>
+                                <SelectItem value="medium">Medium</SelectItem>
+                                <SelectItem value="high">High</SelectItem>
+                                <SelectItem value="urgent">Urgent</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+                          <div className="flex justify-end space-x-2 mt-4">
                             <Button variant="outline" onClick={() => setShowCheckInDialog(false)}>
                               Cancel
                             </Button>
@@ -559,9 +735,18 @@ const ReceptionistPortal: React.FC = () => {
                               <Eye className="h-3 w-3 mr-1" />
                               View
                             </Button>
-                            <Button size="sm" variant="outline">
-                              <Edit className="h-3 w-3 mr-1" />
-                              Update
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleCallNext(item)}
+                              disabled={callNextLoading}
+                            >
+                              {callNextLoading ? (
+                                <RefreshCw className="h-3 w-3 mr-1 animate-spin" />
+                              ) : (
+                                <Zap className="h-3 w-3 mr-1" />
+                              )}
+                              Call Next
                             </Button>
                           </div>
                         </div>
@@ -742,11 +927,13 @@ const ReceptionistPortal: React.FC = () => {
                         <div key={dept} className="flex items-center justify-between">
                           <span className="text-sm font-medium">{dept}</span>
                           <div className="flex items-center space-x-2">
-                            <div className="w-20 bg-gray-200 rounded-full h-2">
-                              <div
+                            <div className="w-20 bg-gray-200 rounded-full h-2 overflow-hidden">
+                              <motion.div
                                 className="bg-green-600 h-2 rounded-full"
-                                style={{ width: `${percentage}%` }}
-                              ></div>
+                                initial={{ width: 0 }}
+                                animate={{ width: `${percentage}%` }}
+                                transition={{ duration: 0.3 }}
+                              />
                             </div>
                             <span className="text-sm text-gray-600 w-8">{count}</span>
                           </div>

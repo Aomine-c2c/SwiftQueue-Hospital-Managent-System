@@ -53,7 +53,35 @@ class CORSConfig:
         Get complete CORS configuration
         """
         env = os.getenv("ENVIRONMENT", "development")
-        
+        # In development allow all origins for convenience (useful for Vite network URLs,
+        # different ports, and mobile testing). For production we keep the stricter
+        # allowlist defined in `get_allowed_origins()` above.
+        if env != "production":
+            return {
+                "allow_origins": ["*"],
+                # When using wildcard origins browsers won't accept credentials.
+                "allow_credentials": False,
+                "allow_methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+                "allow_headers": [
+                    "Authorization",
+                    "Content-Type",
+                    "Accept",
+                    "Origin",
+                    "User-Agent",
+                    "DNT",
+                    "Cache-Control",
+                    "X-Requested-With",
+                    "X-CSRF-Token",
+                ],
+                "expose_headers": [
+                    "Content-Length",
+                    "X-RateLimit-Limit",
+                    "X-RateLimit-Remaining",
+                    "X-RateLimit-Reset",
+                ],
+                "max_age": 3600,
+            }
+
         return {
             "allow_origins": CORSConfig.get_allowed_origins(),
             "allow_credentials": True,
@@ -75,7 +103,7 @@ class CORSConfig:
                 "X-RateLimit-Remaining",
                 "X-RateLimit-Reset",
             ],
-            "max_age": 600 if env == "production" else 3600,  # Preflight cache time
+            "max_age": 600,  # production preflight cache time
         }
     
     @staticmethod

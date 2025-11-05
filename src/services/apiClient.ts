@@ -2,12 +2,12 @@ import axios from 'axios';
 import { authService } from './authService';
 
 // API base URL is configurable via Vite env var VITE_API_URL.
-// Set VITE_API_URL to e.g. "http://localhost:8000" or "http://localhost:8001" in a .env file.
-// The value may include the `/api` suffix; we normalize below to ensure a trailing `/api`.
+// In development with Vite proxy, we use relative URLs (empty string) so requests go through the proxy.
+// In production or when VITE_API_URL is set, use the configured URL.
 const _VITE_API = (import.meta as any).env?.VITE_API_URL as string | undefined;
-const _DEFAULT_API = 'http://localhost:8001';
+const _DEFAULT_API = ''; // Empty string = use Vite proxy (relative URLs like /api/...)
 const rawBase = (_VITE_API && _VITE_API.length > 0) ? _VITE_API : _DEFAULT_API;
-const API_BASE_URL = rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/+$/, '')}/api`;
+const API_BASE_URL = rawBase === '' ? '/api' : (rawBase.endsWith('/api') ? rawBase : `${rawBase.replace(/\/+$/, '')}/api`);
 
 // Create axios instance
 const apiClient = axios.create({

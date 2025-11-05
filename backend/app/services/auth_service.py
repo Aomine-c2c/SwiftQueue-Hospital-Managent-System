@@ -16,24 +16,48 @@ load_dotenv()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 
 # JWT Configuration
-# CRITICAL: SECRET_KEY must be set via environment variable for security
+# CRITICAL: SECRET_KEY should be set via environment variable for security
+# For development and Vercel preview builds we allow a non-production fallback
 SECRET_KEY = os.getenv("SECRET_KEY")
 if not SECRET_KEY:
-    raise ValueError(
-        "SECRET_KEY environment variable must be set! "
-        "Generate a secure key with: openssl rand -hex 32"
-    )
+    env = os.getenv("ENVIRONMENT", "development")
+    if env == "production":
+        raise ValueError(
+            "SECRET_KEY environment variable must be set in production! "
+            "Generate a secure key with: openssl rand -hex 32"
+        )
+    else:
+        # Use a clearly unsafe default in non-production to avoid build-time failures
+        print("WARNING: SECRET_KEY not set — using insecure default for development/preview")
+        SECRET_KEY = "dev-secret-change-me"
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+MAX_PASSWORD_LENGTH_BYTES = 72
+
+
+class PasswordPolicyError(ValueError):
+    """Raised when a password violates policy requirements."""
+
+
+def _ensure_password_length(password: str) -> None:
+    """Ensure password length stays within bcrypt limits."""
+    if password is None:
+        raise PasswordPolicyError("Password is required")
+
+    if len(password.encode("utf-8")) > MAX_PASSWORD_LENGTH_BYTES:
+        raise PasswordPolicyError("Password cannot be longer than 72 bytes")
+
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against its hash."""
+    _ensure_password_length(plain_password)
     return pwd_context.verify(plain_password, hashed_password)
 
 def get_password_hash(password: str) -> str:
     """Hash a password."""
+    _ensure_password_length(password)
     return pwd_context.hash(password)
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):

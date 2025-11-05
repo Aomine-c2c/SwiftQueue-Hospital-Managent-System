@@ -11,7 +11,8 @@ from app.services.auth_service import (
     get_user_by_email,
     create_user,
     update_user_last_login,
-    ACCESS_TOKEN_EXPIRE_MINUTES
+    ACCESS_TOKEN_EXPIRE_MINUTES,
+    PasswordPolicyError
 )
 from app.models.models import User
 
@@ -124,6 +125,8 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
             country=user.country
         )
         return new_user
+    except PasswordPolicyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error creating user: {str(e)}")
 
@@ -133,7 +136,11 @@ async def login_for_access_token(
     db: Session = Depends(get_db)
 ):
     """Authenticate user and return JWT token."""
-    user = authenticate_user(db, form_data.username, form_data.password)
+    try:
+        user = authenticate_user(db, form_data.username, form_data.password)
+    except PasswordPolicyError as exc:
+        raise HTTPException(status_code=400, detail=str(exc))
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
