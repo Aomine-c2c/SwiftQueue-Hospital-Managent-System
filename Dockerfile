@@ -1,5 +1,5 @@
 # Multi-stage build for SwiftQueue Hospital
-FROM node:18-alpine AS frontend-build
+FROM node:22-alpine AS frontend-build
 
 # Set working directory
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci --only=production
+RUN npm install --production
 
 # Copy source code
 COPY . .
