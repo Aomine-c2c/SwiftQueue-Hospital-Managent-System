@@ -21,8 +21,6 @@ export default defineConfig({
     host: true, // Enable network access
     port: 5173,
     strictPort: false, // Allow auto-increment if port busy
-    // @ts-ignore
-    allowedHosts: true,
     proxy: {
       // Proxy API requests to backend (use localhost since they're on same machine)
       '/api': {

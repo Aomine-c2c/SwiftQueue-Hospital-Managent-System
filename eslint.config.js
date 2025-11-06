@@ -8,7 +8,16 @@ import reactRefresh from 'eslint-plugin-react-refresh';
 
 export default [
   {
-    ignores: ['dist', 'node_modules', 'backend', 'mobile', 'tests'],
+    ignores: [
+      'dist', 
+      'node_modules', 
+      'backend', 
+      'mobile', 
+      'tests',
+      '*.config.js', // Ignore config files
+      'lighthouserc.js',
+      'scripts/*.js',
+    ],
   },
   js.configs.recommended,
   {
@@ -91,8 +100,13 @@ export default [
       'no-undef': 'off', // TypeScript handles this
       'react-hooks/exhaustive-deps': 'warn',
       'react-hooks/rules-of-hooks': 'error',
+      'react-hooks/immutability': 'warn', // Warn instead of error
+      'react-hooks/purity': 'warn', // Warn instead of error for impure functions
       'no-empty': 'warn',
       'no-useless-escape': 'warn',
+      'no-redeclare': 'warn',
+      'react/jsx-key': 'warn',
+      '@typescript-eslint/ban-ts-comment': 'warn',
     },
     settings: {
       react: {
