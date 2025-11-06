@@ -1,13 +1,14 @@
-# Multi-stage build for SwiftQueue Hospital
+# Multi-stage Docker build for SwiftQueue Hospital Management System
+
+# Stage 1: Build frontend
 FROM node:22-alpine AS frontend-build
 
-# Set working directory
 WORKDIR /app
 
 # Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
 
-# Install ALL dependencies (including devDependencies for build)
+# Install dependencies
 RUN npm install
 
 # Copy source code
@@ -16,31 +17,33 @@ COPY . .
 # Build frontend
 RUN npm run build
 
-# Python backend stage
+# Stage 2: Backend with Python
 FROM python:3.9-slim AS backend
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies
+# Install system dependencies including curl for health checks
 RUN apt-get update && apt-get install -y \
     gcc \
     g++ \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install Python dependencies
+# Copy backend requirements
 COPY backend/requirements.txt .
+
+# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
 # Copy backend code
 COPY backend/ .
 
-# Copy built frontend from previous stage
+# Copy frontend build
 COPY --from=frontend-build /app/dist ./static
 
 # Create non-root user
 RUN useradd -m -u 1000 appuser && chown -R appuser:appuser /app
+
 USER appuser
 
 # Expose port
@@ -50,5 +53,5 @@ EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8000/ || exit 1
 
-# Start the application
+# Run the application
 CMD ["python", "run.py"]

@@ -7,11 +7,22 @@ import os
 class RedisCache:
     def __init__(self):
         redis_url = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
-        self.client = redis.from_url(redis_url, decode_responses=True)
+        try:
+            self.client = redis.from_url(redis_url, decode_responses=True, socket_connect_timeout=2)
+            # Test connection
+            self.client.ping()
+            self.enabled = True
+            print("Redis connection successful")
+        except Exception as e:
+            print(f"Redis connection failed: {e}. Caching disabled.")
+            self.client = None
+            self.enabled = False
         self.default_ttl = 300  # 5 minutes
 
     def get(self, key: str) -> Optional[Any]:
         """Get value from cache"""
+        if not self.enabled:
+            return None
         try:
             value = self.client.get(key)
             if value:
@@ -23,6 +34,8 @@ class RedisCache:
 
     def set(self, key: str, value: Any, ttl: Optional[int] = None) -> bool:
         """Set value in cache with optional TTL"""
+        if not self.enabled:
+            return False
         try:
             serialized = json.dumps(value, default=str)
             if ttl is None:
@@ -34,6 +47,8 @@ class RedisCache:
 
     def delete(self, key: str) -> bool:
         """Delete key from cache"""
+        if not self.enabled:
+            return False
         try:
             return bool(self.client.delete(key))
         except Exception as e:
@@ -42,6 +57,8 @@ class RedisCache:
 
     def delete_pattern(self, pattern: str) -> int:
         """Delete all keys matching pattern"""
+        if not self.enabled:
+            return 0
         try:
             keys = self.client.keys(pattern)
             if keys:
@@ -53,6 +70,8 @@ class RedisCache:
 
     def exists(self, key: str) -> bool:
         """Check if key exists"""
+        if not self.enabled:
+            return False
         try:
             return bool(self.client.exists(key))
         except Exception as e:
