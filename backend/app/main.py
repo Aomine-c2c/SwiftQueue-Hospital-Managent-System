@@ -135,6 +135,27 @@ async def startup_event():
         create_tables()
         print("✓ Database tables created successfully")
         
+        # Auto-initialize demo data if database is empty (production in-memory)
+        if os.getenv("ENVIRONMENT") == "production":
+            from app.database import SessionLocal
+            from app.models.models import Service
+            db = SessionLocal()
+            try:
+                service_count = db.query(Service).count()
+                if service_count == 0:
+                    print("\n⚠️  Database is empty - initializing with demo data...")
+                    import subprocess
+                    try:
+                        subprocess.run(["python", "generate_demo_data.py"], check=True, timeout=30)
+                        print("✓ Demo data initialized successfully")
+                    except Exception as demo_error:
+                        print(f"⚠️  Could not auto-initialize demo data: {demo_error}")
+                        print("   API will work but database will be empty")
+                else:
+                    print(f"✓ Database has {service_count} services")
+            finally:
+                db.close()
+        
         # Print security configuration
         print("\n" + "=" * 60)
         print("Starting Hospital Queue Management System")
