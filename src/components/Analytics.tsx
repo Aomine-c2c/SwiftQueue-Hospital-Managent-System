@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -12,32 +12,18 @@ import {
   Activity, 
   Users, 
   Clock, 
-  TrendingUp, 
-  TrendingDown,
-  Calendar, 
-  AlertTriangle, 
-  CheckCircle, 
-  Info, 
-  Zap, 
+  TrendingUp,
+  AlertTriangle,
   Loader2,
   RefreshCw,
-  Download,
-  Filter,
   Eye,
   Brain,
-  Heart,
-  Stethoscope,
-  AlertCircle,
   Star,
-  Target,
   ArrowUp,
   ArrowDown,
   Minus,
   Play,
-  Pause,
-  BarChart,
-  PieChart as PieChartIcon,
-  LineChart as LineChartIcon
+  Pause
 } from 'lucide-react';
 import { analyticsService } from '@/services/analyticsService';
 import { demoService } from '@/services/demoService';
@@ -83,7 +69,6 @@ interface AnalyticsData {
 const Analytics: React.FC = () => {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
   const [timeRange, setTimeRange] = useState('7d');
   const [autoRefresh, setAutoRefresh] = useState(true);
@@ -130,7 +115,7 @@ const Analytics: React.FC = () => {
     const demoData = demoService.generateAnalyticsData();
     
     setData({
-      waitTimeTrends: demoData.hourlyData.map((item, index) => ({
+      waitTimeTrends: demoData.hourlyData.map((item) => ({
         hour: item.hour,
         avgWaitTime: item.waitTime,
         patients: item.patients,
@@ -431,7 +416,7 @@ const Analytics: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {data.serviceDistribution.map((service, index) => (
+                      {data.serviceDistribution.map((service) => (
                         <div key={service.name} className="space-y-2">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
@@ -476,7 +461,7 @@ const Analytics: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <div className="h-64 flex items-end justify-between space-x-2">
-                    {data.waitTimeTrends.map((trend, index) => (
+                    {data.waitTimeTrends.map((trend) => (
                       <div key={trend.hour} className="flex flex-col items-center space-y-2">
                         <div
                           className="bg-gradient-to-t from-blue-500 to-purple-600 rounded-t-lg w-8 transition-all duration-500 hover:scale-110"
@@ -509,7 +494,7 @@ const Analytics: React.FC = () => {
                 <CardContent>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-4">
-                      {data.serviceDistribution.map((service, index) => (
+                      {data.serviceDistribution.map((service) => (
                         <div key={service.name} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                           <div className="flex items-center">
                             <div 

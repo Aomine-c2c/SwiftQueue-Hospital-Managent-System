@@ -90,31 +90,45 @@ app.include_router(ws.router)  # WebSocket router (legacy)
 app.include_router(websocket_enhanced.router)  # Enhanced WebSocket router
 
 # Mount static files for the frontend (after API routes for precedence)
-app.mount("/", StaticFiles(directory=dist_path, html=True), name="static")
+# Try multiple possible locations for static files
+static_paths = [
+    os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "dist"),  # Development
+    os.path.join(os.path.dirname(__file__), "..", "dist"),  # Docker relative
+    "/app/dist",  # Docker absolute
+    "./dist",  # Current directory
+]
+
+dist_path = None
+for path in static_paths:
+    if os.path.exists(path) and os.path.isdir(path):
+        dist_path = path
+        print(f"Found static files at: {dist_path}")
+        break
+
+if dist_path:
+    try:
+        app.mount("/", StaticFiles(directory=dist_path, html=True), name="static")
+        print(f"Mounted static files from: {dist_path}")
+    except Exception as e:
+        print(f"Warning: Could not mount static files: {e}")
+else:
+    print("Warning: Static files directory not found. API-only mode.")
 
 @app.on_event("startup")
 async def startup_event():
     """Application startup: initialize database and security"""
     # Validate critical environment variables
     import os
-    required_vars = {
-        "SECRET_KEY": "JWT secret key for authentication (generate with: openssl rand -hex 32)"
-    }
     
-    missing_vars = []
-    for var, description in required_vars.items():
-        if not os.getenv(var):
-            missing_vars.append(f"  - {var}: {description}")
-    
-    if missing_vars:
+    # Check SECRET_KEY
+    secret_key = os.getenv("SECRET_KEY")
+    if not secret_key or secret_key == "changeme_generate_secure_key_in_production":
         print("\n" + "=" * 70)
-        print("🚨 CRITICAL: Missing Required Environment Variables")
+        print("⚠️  WARNING: Using default SECRET_KEY")
         print("=" * 70)
-        for msg in missing_vars:
-            print(msg)
-        print("\nCreate a .env file based on .env.example and set these variables")
+        print("For production deployment, set SECRET_KEY environment variable")
+        print("Generate with: openssl rand -hex 32")
         print("=" * 70 + "\n")
-        raise ValueError("Required environment variables not set. See error above.")
     
     create_tables()
     

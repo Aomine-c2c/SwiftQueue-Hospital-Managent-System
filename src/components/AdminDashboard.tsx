@@ -28,17 +28,13 @@ import {
   Database,
   Download,
   Edit,
-  MapPin,
-  Menu,
   Plus,
   RefreshCw,
   Search,
   Shield,
   Settings,
-  User,
   UserCheck,
   Users,
-  X,
   XCircle
 } from 'lucide-react';
 
@@ -123,8 +119,6 @@ export default function AdminDashboard() {
   const [showUserDialog, setShowUserDialog] = useState(false);
   const [showSettingDialog, setShowSettingDialog] = useState(false);
   const [showDepartmentDialog, setShowDepartmentDialog] = useState(false);
-  const [selectedUser, setSelectedUser] = useState<UserManagement | null>(null);
-  const [selectedSetting, setSelectedSetting] = useState<SystemSetting | null>(null);
 
   // Search and filter state
   const [userSearchTerm, setUserSearchTerm] = useState("");
@@ -137,7 +131,7 @@ export default function AdminDashboard() {
   const [lastUpdate, setLastUpdate] = useState<Date>(new Date());
   const [liveNotifications, setLiveNotifications] = useState<any[]>([]);
   // Mock live queue items for quick dev view
-  const [liveQueueItems, setLiveQueueItems] = useState<Array<any>>([
+  const [liveQueueItems] = useState<Array<any>>([
     { id: 1, ticket: 'A101', patient_name: 'John Smith', service: 'Registration', wait_seconds: 120 },
     { id: 2, ticket: 'A102', patient_name: 'Jane Doe', service: 'Triage', wait_seconds: 300 },
     { id: 3, ticket: 'A103', patient_name: 'Sam Lee', service: 'Consultation', wait_seconds: 45 }
@@ -145,7 +139,6 @@ export default function AdminDashboard() {
 
   // Mobile responsiveness
   const [isMobile, setIsMobile] = useState(false);
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   // Form state
   const [userForm, setUserForm] = useState({
@@ -179,7 +172,6 @@ export default function AdminDashboard() {
     // Check if mobile device
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
-      setSidebarCollapsed(window.innerWidth < 768);
     };
 
     checkMobile();
@@ -232,6 +224,7 @@ export default function AdminDashboard() {
     return () => {
       cleanup?.then(cleanupFn => cleanupFn?.());
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const loadInitialData = async () => {

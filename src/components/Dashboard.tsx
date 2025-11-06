@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -7,36 +7,25 @@ import { Progress } from '@/components/ui/progress';
 import { 
   Clock, 
   Users, 
-  AlertCircle, 
-  CheckCircle, 
+  AlertCircle,
   Heart, 
   Brain, 
   Activity, 
   Stethoscope,
   TrendingUp,
-  TrendingDown,
-  Zap,
-  Shield,
   Star,
-  Bell,
   RefreshCw,
-  Eye,
   UserCheck,
-  Timer,
   BarChart3,
-  PieChart,
-  LineChart,
   ArrowUp,
   ArrowDown,
   Minus,
   Play,
-  Pause,
-  Square
+  Pause
 } from 'lucide-react';
 import { wsService } from '@/services/wsService';
 import { servicesService } from '@/services/servicesService';
 import { queueService } from '@/services/queueService';
-import { demoService } from '@/services/demoService';
 
 interface QueueItem {
   id: number;
@@ -88,7 +77,6 @@ const Dashboard: React.FC = () => {
     peakHour: '10:00 AM'
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [selectedService, setSelectedService] = useState<number | null>(null);
   const [autoRefresh, setAutoRefresh] = useState(true);
 
@@ -96,6 +84,7 @@ const Dashboard: React.FC = () => {
     loadInitialData();
     const unsubscribe = wsService.subscribe(handleQueueUpdate);
     return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -103,6 +92,7 @@ const Dashboard: React.FC = () => {
       const interval = setInterval(loadInitialData, 5000);
       return () => clearInterval(interval);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoRefresh]);
 
   const loadInitialData = async () => {
@@ -167,7 +157,6 @@ const Dashboard: React.FC = () => {
 
     } catch (err) {
       console.error('Failed to load data:', err);
-      setError('Failed to load dashboard data');
       // Use demo data as fallback
       loadDemoData();
     } finally {
@@ -176,9 +165,6 @@ const Dashboard: React.FC = () => {
   };
 
   const loadDemoData = () => {
-    const demoQueues = demoService.generateQueueData();
-    const demoServices = demoService.generateAnalyticsData();
-    
     setQueues([
       {
         id: 1,

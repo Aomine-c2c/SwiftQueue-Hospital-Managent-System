@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from "react-router-dom";
 import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
@@ -21,21 +21,12 @@ import {
   AlertTriangle,
   ArrowRight,
   Sparkles,
-  Shield,
-  Zap,
   TrendingUp,
   Star,
-  Play,
   Phone,
   Mail,
   MapPin,
-  Calendar,
-  Award,
-  Target,
-  Globe,
   Crown,
-  UserCheck,
-  Menu,
   X,
   ChevronRight
 } from "lucide-react";

@@ -7,7 +7,6 @@ import { Switch } from '@/components/ui/switch';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Alert, AlertDescription } from '@/components/ui/alert';
 import { 
@@ -16,45 +15,24 @@ import {
   Monitor, 
   BarChart3, 
   UserCheck, 
-  Clock, 
   AlertTriangle,
   CheckCircle,
-  XCircle,
   Brain,
-  Heart,
-  Stethoscope,
   Activity,
   Shield,
   Plus,
   Edit,
-  Trash2,
   Save,
   RefreshCw,
-  Eye,
   UserPlus,
-  UserMinus,
-  Zap,
-  TrendingUp,
-  TrendingDown,
   Star,
-  Bell,
-  Lock,
-  Unlock,
-  Play,
-  Pause,
-  Square,
-  ArrowUp,
-  ArrowDown,
-  Minus,
-  Target,
-  Calendar,
   FileText,
   Database,
   Server,
   Wifi,
-  WifiOff
+  Heart,
+  Stethoscope
 } from 'lucide-react';
-import { demoService } from '@/services/demoService';
 
 interface StaffMember {
   id: string;
@@ -111,29 +89,7 @@ const AdminPanel: React.FC = () => {
     maxWaitTime: 60,
     peakHourThreshold: 20
   });
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
-  const [editingStaff, setEditingStaff] = useState<StaffMember | null>(null);
-  const [editingService, setEditingService] = useState<ServiceArea | null>(null);
-
-  useEffect(() => {
-    loadData();
-    const interval = setInterval(loadData, 10000);
-    return () => clearInterval(interval);
-  }, []);
-
-  const loadData = async () => {
-    try {
-      setLoading(true);
-      // Load demo data
-      loadDemoData();
-    } catch (err) {
-      setError('Failed to load admin data');
-    } finally {
-      setLoading(false);
-    }
-  };
+  const [loading] = useState(false);
 
   const loadDemoData = () => {
     setStaff([
@@ -223,6 +179,12 @@ const AdminPanel: React.FC = () => {
       }
     ]);
   };
+
+  useEffect(() => {
+    loadDemoData(); // eslint-disable-line react-hooks/set-state-in-effect
+    const interval = setInterval(loadDemoData, 10000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleStaffToggle = (staffId: string) => {
     setStaff(prev => prev.map(s => 
@@ -428,7 +390,7 @@ const AdminPanel: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {staff.slice(0, 5).map((member, index) => {
+                      {staff.slice(0, 5).map((member) => {
                         const Icon = getDepartmentIcon(member.department);
                         return (
                           <div key={member.id} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
@@ -473,7 +435,7 @@ const AdminPanel: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {services.map((service, index) => {
+                      {services.map((service) => {
                         const Icon = getDepartmentIcon(service.department);
                         return (
                           <div key={service.id} className="p-3 rounded-lg border border-gray-200">
