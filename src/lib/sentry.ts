@@ -1,5 +1,4 @@
 import * as Sentry from '@sentry/react';
-import { BrowserTracing } from '@sentry/tracing';
 
 const isProduction = import.meta.env.PROD;
 const dsn = import.meta.env.VITE_SENTRY_DSN;
@@ -8,10 +7,8 @@ if (isProduction && dsn) {
   Sentry.init({
     dsn,
     integrations: [
-      new BrowserTracing({
-        tracePropagationTargets: ['localhost', /^https:\/\/yourdomain\.com/],
-      }),
-      new Sentry.Replay({
+      Sentry.browserTracingIntegration(),
+      Sentry.replayIntegration({
         maskAllText: true,
         blockAllMedia: true,
       }),
@@ -45,10 +42,12 @@ if (isProduction && dsn) {
 export const startTransaction = (name: string, op: string) => {
   if (!isProduction) return null;
 
-  return Sentry.startTransaction({
+  const span = Sentry.startInactiveSpan({
     name,
     op,
   });
+  
+  return span;
 };
 
 // Error boundary for React components
@@ -74,7 +73,7 @@ export const measurePerformance = (name: string, fn: () => void) => {
   try {
     fn();
   } finally {
-    transaction?.finish();
+    transaction?.end();
   }
 };
 
