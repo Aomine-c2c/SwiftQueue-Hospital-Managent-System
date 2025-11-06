@@ -4,6 +4,8 @@ import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { useTranslation } from 'react-i18next';
 import {
   Monitor,
   Users,
@@ -42,6 +44,7 @@ import { aiService } from '@/services/aiService';
 import { demoService } from '@/services/demoService';
 
 const HomePage: React.FC = () => {
+  const { t } = useTranslation();
   const [stats, setStats] = useState({
     totalPatients: 0,
     avgWaitTime: 0,
@@ -278,6 +281,11 @@ const HomePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+      {/* Fixed Language Switcher */}
+      <div className="fixed top-4 right-4 z-50">
+        <LanguageSwitcher />
+      </div>
+
       {/* Sidebar */}
       <AnimatePresence>
         {sidebarOpen && (
@@ -474,9 +482,9 @@ const HomePage: React.FC = () => {
                 </motion.div>
                 <div className="text-center sm:text-left">
                   <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                    SwiftQueue Hospital
+                    {t('app.name')} Hospital
                   </h1>
-                  <p className="text-lg sm:text-xl text-gray-600 mt-2">AI-Powered Healthcare Management</p>
+                  <p className="text-lg sm:text-xl text-gray-600 mt-2">{t('app.title')}</p>
                 </div>
               </div>
             </motion.div>

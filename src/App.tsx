@@ -10,6 +10,7 @@ import AdminDashboard from "./components/AdminDashboard";
 import ReceptionistPortal from "./components/ReceptionistPortal";
 import StaffCommunicationHub from "./components/staff-communication-hub";
 import PatientDashboard from "./components/patient-dashboard";
+import './i18n/config'; // Initialize i18n
 
 function App() {
   return (
