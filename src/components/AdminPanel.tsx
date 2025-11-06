@@ -79,6 +79,7 @@ const AdminPanel: React.FC = () => {
   const [activeTab, setActiveTab] = useState('overview');
   const [staff, setStaff] = useState<StaffMember[]>([]);
   const [services, setServices] = useState<ServiceArea[]>([]);
+  const [success, setSuccess] = useState<string>('');
   const [settings, setSettings] = useState<SystemSettings>({
     autoAssign: true,
     notifications: true,
@@ -90,6 +91,10 @@ const AdminPanel: React.FC = () => {
     peakHourThreshold: 20
   });
   const [loading] = useState(false);
+
+  const loadData = () => {
+    loadDemoData();
+  };
 
   const loadDemoData = () => {
     setStaff([
