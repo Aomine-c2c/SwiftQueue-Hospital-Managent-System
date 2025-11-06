@@ -117,36 +117,51 @@ else:
 @app.on_event("startup")
 async def startup_event():
     """Application startup: initialize database and security"""
-    # Validate critical environment variables
-    import os
-    
-    # Check SECRET_KEY
-    secret_key = os.getenv("SECRET_KEY")
-    if not secret_key or secret_key == "changeme_generate_secure_key_in_production":
+    try:
+        # Validate critical environment variables
+        import os
+        
+        # Check SECRET_KEY
+        secret_key = os.getenv("SECRET_KEY")
+        if not secret_key or secret_key == "changeme_generate_secure_key_in_production":
+            print("\n" + "=" * 70)
+            print("⚠️  WARNING: Using default SECRET_KEY")
+            print("=" * 70)
+            print("For production deployment, set SECRET_KEY environment variable")
+            print("Generate with: openssl rand -hex 32")
+            print("=" * 70 + "\n")
+        
+        print("Creating database tables...")
+        create_tables()
+        print("✓ Database tables created successfully")
+        
+        # Print security configuration
+        print("\n" + "=" * 60)
+        print("Starting Hospital Queue Management System")
+        print("=" * 60)
+        
+        SecurityConfig.print_config()
+        
+        # Print active routes
+        print("\nREGISTERED ROUTES:")
+        route_count = 0
+        for route in app.routes:
+            if hasattr(route, "methods"):
+                methods = ", ".join(route.methods)
+                print(f"  {methods:20} {route.path}")
+                route_count += 1
+        
+        print(f"\n✓ Total routes registered: {route_count}")
+        print("\n✓ Application started successfully!\n")
+    except Exception as e:
         print("\n" + "=" * 70)
-        print("⚠️  WARNING: Using default SECRET_KEY")
+        print("ERROR during startup:")
         print("=" * 70)
-        print("For production deployment, set SECRET_KEY environment variable")
-        print("Generate with: openssl rand -hex 32")
-        print("=" * 70 + "\n")
-    
-    create_tables()
-    
-    # Print security configuration
-    print("\n" + "=" * 60)
-    print("Starting Hospital Queue Management System")
-    print("=" * 60)
-    
-    SecurityConfig.print_config()
-    
-    # Print active routes
-    print("\nREGISTERED ROUTES:")
-    for route in app.routes:
-        if hasattr(route, "methods"):
-            methods = ", ".join(route.methods)
-            print(f"  {methods:20} {route.path}")
-    
-    print("\nApplication started successfully!\n")
+        print(f"Error: {e}")
+        import traceback
+        traceback.print_exc()
+        print("=" * 70)
+        raise  # Re-raise to prevent app from starting with errors
 
 @app.on_event("shutdown")
 async def shutdown_event():
