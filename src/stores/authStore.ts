@@ -12,13 +12,15 @@ interface User {
 interface AuthState {
   user: User | null;
   token: string | null;
+  refreshToken: string | null;
   isAuthenticated: boolean;
   isLoading: boolean;
   error: string | null;
 
   // Actions
-  login: (user: User, token: string) => void;
+  login: (user: User, token: string, refreshToken?: string) => void;
   logout: () => void;
+  setTokens: (token: string, refreshToken: string) => void;
   updateUser: (user: Partial<User>) => void;
   setLoading: (loading: boolean) => void;
   setError: (error: string | null) => void;
@@ -30,14 +32,16 @@ export const useAuthStore = create<AuthState>()(
     (set, get) => ({
       user: null,
       token: null,
+      refreshToken: null,
       isAuthenticated: false,
       isLoading: false,
       error: null,
 
-      login: (user: User, token: string) => {
+      login: (user: User, token: string, refreshToken?: string) => {
         set({
           user,
           token,
+          refreshToken: refreshToken || null,
           isAuthenticated: true,
           isLoading: false,
           error: null,
@@ -48,9 +52,17 @@ export const useAuthStore = create<AuthState>()(
         set({
           user: null,
           token: null,
+          refreshToken: null,
           isAuthenticated: false,
           isLoading: false,
           error: null,
+        });
+      },
+
+      setTokens: (token: string, refreshToken: string) => {
+        set({
+          token,
+          refreshToken,
         });
       },
 
@@ -80,6 +92,7 @@ export const useAuthStore = create<AuthState>()(
       partialize: (state) => ({
         user: state.user,
         token: state.token,
+        refreshToken: state.refreshToken,
         isAuthenticated: state.isAuthenticated,
       }),
     }
