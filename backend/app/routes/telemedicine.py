@@ -7,7 +7,7 @@ import json
 
 from app.database import get_db
 from app.services.telemedicine_service import TelemedicineService
-from app.services.auth_service import get_current_user
+from app.services.auth_service import get_current_active_user
 from app.models.models import User, TelemedicineSession, TelemedicineMessage, TelemedicineWaitingRoom
 
 
@@ -110,7 +110,7 @@ class WaitingRoomResponse(BaseModel):
 @router.post("/sessions")
 async def create_session(
     request: SessionCreateRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Create a new telemedicine session"""
@@ -133,7 +133,20 @@ async def create_session(
             chief_complaint=request.chief_complaint,
             recording_enabled=request.recording_enabled
         )
-        return session
+        # Convert SQLAlchemy model to dict
+        return {
+            "session_id": session.session_id,
+            "patient_id": session.patient_id,
+            "doctor_id": session.doctor_id,
+            "appointment_id": session.appointment_id,
+            "session_type": session.session_type,
+            "status": session.status,
+            "room_id": session.room_id,
+            "scheduled_start": session.scheduled_start.isoformat() if session.scheduled_start else None,
+            "chief_complaint": session.chief_complaint,
+            "recording_enabled": session.recording_enabled,
+            "created_at": session.created_at.isoformat() if session.created_at else None
+        }
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
@@ -144,7 +157,7 @@ async def create_session(
 @router.get("/sessions/{session_id}")
 async def get_session(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get session details"""
@@ -169,7 +182,7 @@ async def get_session(
 
 @router.get("/sessions")
 async def get_user_sessions(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
     limit: int = 50,
     status_filter: Optional[str] = None
@@ -195,7 +208,7 @@ async def get_user_sessions(
 async def update_session(
     session_id: str,
     request: SessionUpdateRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Update session details"""
@@ -257,7 +270,7 @@ async def update_session(
 @router.post("/sessions/{session_id}/start")
 async def start_session(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Start a telemedicine session"""
@@ -291,7 +304,7 @@ async def start_session(
 async def send_message(
     session_id: str,
     request: MessageCreateRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Send a message in a session"""
@@ -330,7 +343,7 @@ async def send_message(
 @router.get("/sessions/{session_id}/messages")
 async def get_session_messages(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
     limit: int = 100
 ):
@@ -362,7 +375,7 @@ async def get_session_messages(
 @router.post("/sessions/{session_id}/waiting-room/join")
 async def join_waiting_room(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Join waiting room for a session"""
@@ -396,7 +409,7 @@ async def join_waiting_room(
 async def admit_from_waiting_room(
     session_id: str,
     patient_id: int,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Admit patient from waiting room (doctor only)"""
@@ -429,7 +442,7 @@ async def admit_from_waiting_room(
 @router.get("/sessions/{session_id}/waiting-room")
 async def get_waiting_room(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get waiting room for a session (doctor only)"""
@@ -456,7 +469,7 @@ async def get_waiting_room(
 async def submit_feedback(
     session_id: str,
     request: FeedbackRequest,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Submit feedback for a completed session"""
@@ -500,7 +513,7 @@ async def submit_feedback(
 
 @router.get("/sessions/upcoming")
 async def get_upcoming_sessions(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db),
     limit: int = 10
 ):
@@ -511,7 +524,7 @@ async def get_upcoming_sessions(
 
 @router.get("/sessions/active")
 async def get_active_sessions(
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get active sessions for current user"""
@@ -523,7 +536,7 @@ async def get_active_sessions(
 async def cancel_session(
     session_id: str,
     reason: str = None,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Cancel a telemedicine session"""
@@ -556,7 +569,7 @@ async def cancel_session(
 @router.get("/sessions/{session_id}/report")
 async def get_session_report(
     session_id: str,
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Get comprehensive session report"""
@@ -591,7 +604,7 @@ async def get_session_report(
 async def webrtc_signal(
     session_id: str,
     signal_data: Dict[str, Any],
-    current_user: User = Depends(get_current_user),
+    current_user: User = Depends(get_current_active_user),
     db: Session = Depends(get_db)
 ):
     """Handle WebRTC signaling (simplified version)"""
