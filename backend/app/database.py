@@ -3,19 +3,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import declarative_base, sessionmaker
 
 # Allow overriding the DB URL via environment variable for tests and deployments
-# Use in-memory SQLite for ephemeral environments (like Render free tier)
+# For Render/production without DATABASE_URL, use /tmp (writable on most containers)
 default_db = "sqlite:///./queue_management.db"
 if os.getenv("ENVIRONMENT") == "production" and not os.getenv("DATABASE_URL"):
-    # Use in-memory SQLite for production if no DATABASE_URL provided
-    # This handles Render's read-only filesystem
-    print("⚠️  Using in-memory SQLite database (data will reset on restart)")
-    print("   For persistent data, set DATABASE_URL environment variable")
-    default_db = "sqlite:///:memory:"
+    # Use /tmp directory which is writable on Render
+    default_db = "sqlite:////tmp/queue_management.db"
 
 SQLALCHEMY_DATABASE_URL = os.getenv("SQLALCHEMY_DATABASE_URL") or os.getenv("DATABASE_URL") or default_db
 
 # SQLite specific: disable same-thread check for SQLAlchemy usage across threads
-engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False})
+connect_args = {"check_same_thread": False} if SQLALCHEMY_DATABASE_URL.startswith("sqlite") else {}
+engine = create_engine(SQLALCHEMY_DATABASE_URL, connect_args=connect_args)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 Base = declarative_base()
